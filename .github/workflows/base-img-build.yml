@@ -1,0 +1,45 @@
+name: Build Base Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning'
+
+env:
+  BASE_BRANCH: "main"       # source code branch for pipeline
+  TAG_ADDR: "armyost/baserunner:1.1"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  docker-build-job: 
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{env.BASE_BRANCH}}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+  
+    # Docker Repository Login
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+    - name: Build and Push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./docker/runner/
+        push: true
+        tags: ${{ env.TAG_ADDR }}
+        cache-to: type=gha, mode=max
+        cache-from: type=gha
